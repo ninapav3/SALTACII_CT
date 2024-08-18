@@ -31,7 +31,7 @@ def main(args):
     kernel_radius = [int(r) for r in args.kernel_radius]
 
     # Hardcoded path to the CSV file containing labels and descriptions
-    labels_csv_path = '/Users/pavlovic/Desktop/Analysis/ML_labels.csv'
+    labels_csv_path = '/Users/pavlovic/Desktop/Analysis/SALTACII_CT/ML_labels.csv'
 
     # Read the DataFrame containing labels and descriptions
     labels_list = pd.read_csv(labels_csv_path)

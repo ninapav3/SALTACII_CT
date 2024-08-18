@@ -9,6 +9,7 @@ Created on Wed Aug 14 17:23:36 2024
 import SimpleITK as sitk
 import os
 import argparse
+import numpy as np
 
 # Set up argument parser
 parser = argparse.ArgumentParser(description='Compute and save the voxel difference between two images.')
@@ -25,9 +26,13 @@ args = parser.parse_args()
 baseline = sitk.ReadImage(args.baseline_path) 
 followup = sitk.ReadImage(args.followup_path)
 
+# Threshold the image to remove values over 1500 (e.g., surgical screws)
+screwless_followup = sitk.Threshold(followup, lower=-np.inf, upper=1500, outsideValue=1500)
+
 # Compute the voxel-wise difference
 difference = sitk.Subtract(followup, baseline)
 # Extract the directory and base name from the baseline image path
+
 output_directory = os.path.dirname(args.baseline_path)
 main_image_base_name = os.path.basename(args.baseline_path).replace('_common.nii.gz', '').replace('V1', f"{args.baseline_label}_{args.followup_label}")
 
