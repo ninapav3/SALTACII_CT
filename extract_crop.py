@@ -15,21 +15,12 @@ import argparse
 def process_label(label, description, main_image, mask_image, kernel_radius, output_subdir, base_name):
     # Create binary mask for the current label
     binary_mask = sitk.Equal(mask_image, label)
-
-    # Dilate the binary mask
-    dilated_mask = sitk.BinaryDilate(binary_mask, kernel_radius)
-    #output_filename_mask = os.path.join(output_subdir, f"{base_name}_{description}_mask.nii.gz")
-    #sitk.WriteImage(dilated_mask, output_filename_mask)
     
-    # Apply the dilated mask to the main image
-    masked_image = sitk.Mask(main_image, dilated_mask)
-
-    # Save the resulting masked image with the description in the filename
-    #output_filename_ct = os.path.join(output_subdir, f"{base_name}_{description}.nii.gz")
-    #sitk.WriteImage(masked_image, output_filename_ct)
+    # Apply the mask to the main image
+    masked_image = sitk.Mask(main_image, binary_mask)
 
     #print(f"Processed and saved label {label} ({description}) to {output_filename_ct}")
-    return masked_image, dilated_mask 
+    return masked_image, binary_mask 
 
 def find_mask_bounds(mask_sitk):
     mask_array = sitk.GetArrayFromImage(mask_sitk)
@@ -89,10 +80,10 @@ def main(args):
         # Create the subdirectory if it doesn't exist
         os.makedirs(output_subdir, exist_ok=True)
         
-        masked_image, dilated_mask = process_label(label, description, main_image, mask_image, kernel_radius, output_subdir, main_image_base_name)
+        masked_image, binary_mask = process_label(label, description, main_image, mask_image, kernel_radius, output_subdir, main_image_base_name)
         
         # Crop images
-        cropped_image, cropped_mask = crop_image(masked_image, dilated_mask, buffer=args.buffer)
+        cropped_image, cropped_mask = crop_image(masked_image, binary_mask, buffer=args.buffer)
         
         # Extract the directory and base name from the main image path
         output_directory = os.path.dirname(args.main_image_path)
