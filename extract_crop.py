@@ -73,7 +73,7 @@ def main(args):
     
     # Extract the directory and base name from the main image path
     output_directory = os.path.dirname(args.main_image_path)
-    main_image_base_name = os.path.basename(args.main_image_path).replace('_CAL.nii.gz', '')  # Remove the file extension
+    main_image_base_name = os.path.basename(args.main_image_path).replace('_DECT.nii.gz', '')  # Remove the file extension
     
     # Filter labels based on the label of interest, if provided
     if args.label_of_interest is not None:
