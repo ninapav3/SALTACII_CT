@@ -12,15 +12,17 @@ import os
 import argparse
 
 # Function to process each label
-def process_label(label, description, main_image, mask_image, kernel_radius, output_subdir, base_name):
+def process_label(label, description, main_image, mask_image, kernel_radius):
     # Create binary mask for the current label
     binary_mask = sitk.Equal(mask_image, label)
-    
-    # Apply the mask to the main image
-    masked_image = sitk.Mask(main_image, binary_mask)
 
-    #print(f"Processed and saved label {label} ({description}) to {output_filename_ct}")
-    return masked_image, binary_mask 
+    # Crop images
+    cropped_image, cropped_mask = crop_image(main_image, binary_mask, buffer=args.buffer)
+
+    # Dilate the binary mask
+    dilated_mask = sitk.BinaryDilate(cropped_mask, kernel_radius)
+    
+    return cropped_image, cropped_mask, dilated_mask 
 
 def find_mask_bounds(mask_sitk):
     mask_array = sitk.GetArrayFromImage(mask_sitk)
@@ -80,10 +82,7 @@ def main(args):
         # Create the subdirectory if it doesn't exist
         os.makedirs(output_subdir, exist_ok=True)
         
-        masked_image, binary_mask = process_label(label, description, main_image, mask_image, kernel_radius, output_subdir, main_image_base_name)
-        
-        # Crop images
-        cropped_image, cropped_mask = crop_image(masked_image, binary_mask, buffer=args.buffer)
+        cropped_image, cropped_mask, dilated_mask = process_label(label, description, main_image, mask_image, kernel_radius)
         
         # Extract the directory and base name from the main image path
         output_directory = os.path.dirname(args.main_image_path)
@@ -93,13 +92,21 @@ def main(args):
         # Write output
         sitk.WriteImage(cropped_image, output_filename)
         print(f"Cropped image saved to {output_filename}")
-        
-        if args.cropped_mask == True :
-            output_filename_mask = os.path.join(output_subdir, f"{main_image_base_name}_{description}_cropped_mask.nii.gz")
-            sitk.WriteImage(cropped_mask, output_filename_mask)
-            print(f"Cropped mask image saved to {output_filename_mask}")
-        
-    
+
+        output_filename_mask = os.path.join(output_subdir, f"{main_image_base_name}_{description}_cropped_mask.nii.gz")
+        sitk.WriteImage(cropped_mask, output_filename_mask)
+        print(f"Cropped mask image saved to {output_filename_mask}")
+
+        output_filename_dilated_mask = os.path.join(output_subdir, f"{main_image_base_name}_{description}_cropped_dilated_mask.nii.gz")
+        sitk.WriteImage(dilated_mask, output_filename_dilated_mask)
+        print(f"Cropped dilated mask image saved to {output_filename_dilated_mask}")
+
+        if args.extract == True :
+            output_filename_extract = os.path.join(output_subdir, f"{main_image_base_name}_{description}.nii.gz")
+            masked_image = sitk.Mask(cropped_image, cropped_mask)
+            sitk.WriteImage(masked_image, output_filename_extract)
+            print(f"Cropped extracted image saved to {output_filename_extract}")
+
     print("Processing complete.")
 
 if __name__ == "__main__":
@@ -108,12 +115,12 @@ if __name__ == "__main__":
     # Define command-line arguments
     parser.add_argument('main_image_path', type=str, help='Path to the main image')
     parser.add_argument('mask_image_path', type=str, help='Path to the mask image')
-    parser.add_argument('--kernel_radius', type=int, nargs='+', default=[1, 1, 1], help='Kernel radius for dilation (e.g., 2 2 2)')
+    parser.add_argument('--kernel_radius', type=int, nargs='+', default=[2, 2, 2], help='Kernel radius for dilation (e.g., 2 2 2)')
     parser.add_argument('--label_of_interest', type=int, help='Specific label to process (optional)')
 
     #Deine command-line arguments for cropping
     parser.add_argument('--buffer', type=int, default=30, help="Buffer size around the mask (default: 30).")
-    parser.add_argument('--cropped_mask', type=bool, default = False, help="Make a cropped mask file.")
+    parser.add_argument('--extract', type=bool, default = False, help="Extract bone from mask")
 
     args = parser.parse_args()
 
